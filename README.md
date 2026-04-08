@@ -203,6 +203,18 @@ zip_replace_sequential("output.hwpx", "output.hwpx",
     "PLACEHOLDER_NAME", ["홍길동", "김파이썬", "박지피티"])
 ```
 
+### (고급 설정) 기존 파일 수정 및 표 자동보정 API 사용하기 (v0.2+)
+새로 추가된 `hwpx_editor` 패키지를 이용하면 단순 치환을 넘어, 기존 문서의 단락을 삽입/수정하고 깨진 표 구조를 자동 보정할 수 있습니다.
+
+```python
+from scripts.hwpx_editor import open_hwpx, update_section, replace_text
+
+# 기존 파일 불러오기 및 텍스트 안전 변경 (바이트 보존)
+update_section('my-proposal.hwpx', 'Contents/section0.xml', 
+               lambda xml: replace_text(xml, '2025년', '2026년'),
+               output_path='updated-proposal.hwpx')
+```
+
 ### AI 에이전트와 함께 쓰기 (Gemini/Claude)
 이 저장소에 있는 `skills/` 디렉토리를 여러분의 AI 코드 에이전트 환경에 복사해 넣으면, AI가 제안서를 분석하고, 작성하고, HWPX로 만들어 검사하는 전 과정을 자동으로 수행합니다! (상세 내용은 `workflows/` 폴더 참조)
 
@@ -223,7 +235,11 @@ hwpx-proposal-automation/
 │   ├── md_to_hwpx.py            # Markdown → HWPX converter (core)
 │   ├── fix_namespaces.py        # XML namespace post-processor
 │   ├── verify_hwpx.py           # HWPX self-verification system
-│   └── extract_pdf.py           # PDF text extractor
+│   ├── extract_pdf.py           # PDF text extractor
+│   └── hwpx_editor/             # Advanced byte-preserving HWPX editor API
+│       ├── _parser.py           # Depth-tracking string XML parser
+│       ├── table_fixer.py       # Table pagination and colSpan solver
+│       └── modify_hwpx.py       # Safe XML text/paragraph replacer
 │
 ├── skills/                      # AI Agent skill definitions
 │   ├── hwpx-proposal/           # HWPX document creation skill
@@ -260,6 +276,7 @@ hwpx-proposal-automation/
 | [Style System](docs/style-system.md) | charPrIDRef, font tables, style mapping |
 | [Table Page-break](docs/table-pagebreak.md) | How to make tables break across pages |
 | [Troubleshooting](docs/troubleshooting.md) | Common errors and their solutions |
+| [Competitive Analysis](docs/competitive-analysis.md) | Comparison with other HWPX open-source tools |
 
 ---
 

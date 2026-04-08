@@ -1,0 +1,3 @@
+## 2025-02-23 - Unbounded Regex Backtracking in XML Parsing
+**Learning:** When parsing huge single-line XML strings (like Hancom Office HWPX 5MB files), using `[^/]*` inside a regex to find self-closing tags can lead to a catastrophic memory leak and wrong matches. If the tag is NOT self-closing, `[^/]*` skips past the closing `>` and scans massive amounts of text until it randomly hits a `/` in another tag.
+**Action:** Always use `[^>]*` instead of `[^/]*` when scanning within XML tags. This strictly constrains the regex engine to O(1) time complexity relative to the tag length and guarantees it won't scan the rest of the 5MB string if the tag structure differs.

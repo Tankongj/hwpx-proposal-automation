@@ -96,7 +96,7 @@ def _extract_col_span(cell_xml):
         Integer colSpan value (defaults to 1 if not found).
     """
     suffix = _extract_cell_metadata_suffix(cell_xml)
-    m = re.search(r'<hp:cellSpan\b[^/]*colSpan="(\d+)"', suffix)
+    m = re.search(r'<hp:cellSpan\b[^>]*colSpan="(\d+)"', suffix)
     return int(m.group(1)) if m else 1
 
 
@@ -112,7 +112,7 @@ def _extract_row_span(cell_xml):
         Integer rowSpan value (defaults to 1 if not found).
     """
     suffix = _extract_cell_metadata_suffix(cell_xml)
-    m = re.search(r'<hp:cellSpan\b[^/]*rowSpan="(\d+)"', suffix)
+    m = re.search(r'<hp:cellSpan\b[^>]*rowSpan="(\d+)"', suffix)
     return int(m.group(1)) if m else 1
 
 
@@ -142,12 +142,10 @@ def _extract_cell_addrs_by_row(table_xml):
 
         for cell_start, cell_end in cells:
             cell_xml = row_xml[cell_start:cell_end]
-            # Find <hp:cellAddr> within this cell
-            m = re.search(r'<hp:cellAddr\s+([^/]*)/>', cell_xml)
-            if not m:
-                m = re.search(r'<hp:cellAddr\s+([^>]*)>', cell_xml)
+            # Find <hp:cellAddr> within this cell (handles self-closing or regular)
+            m = re.search(r'<hp:cellAddr\b([^>]*)>', cell_xml)
             if m:
-                fragment = m.group(0)
+                fragment = m.group(1)
                 col_m = re.search(r'colAddr="(\d+)"', fragment)
                 row_m = re.search(r'rowAddr="(\d+)"', fragment)
                 if col_m and row_m:

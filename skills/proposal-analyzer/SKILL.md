@@ -45,5 +45,6 @@ description: 제안요청서(RFP) 및 공고문 분석 스킬. 평가항목, 배
 ```
 
 ## 에이전트 지침
-- 파일이 PDF인 경우 `scripts/extract_pdf.py` 도구를 사용하여 먼저 텍스트로 추출한 뒤 분석을 수행하십시오.
+- 파일이 PDF인 경우 `scripts/extract_pdf.py` 도구를 사용하여 먼저 텍스트로 추출하십시오.
+- 파일이 PPT/PPTX인 경우 `scripts/extract_ppt.py` 도구를 사용하여 데이터를 구조화된 JSON 형태로 추출하십시오.
 - 모호한 요구사항이 있다면 반드시 사용자에게 확인을 요청하는 "Open Questions" 섹션을 추가하십시오.

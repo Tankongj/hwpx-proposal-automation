@@ -46,6 +46,16 @@ def fix_hwpx_namespaces(hwpx_path: str) -> None:
 
     tmp = Path(tempfile.mktemp(suffix='.hwpx'))
     fixed_count = 0
+    tables_fixed = False
+
+    # Attempt to import the new Table Fixer module
+    try:
+        from hwpx_editor.table_fixer import fix_all_tables
+    except ImportError:
+        try:
+            from scripts.hwpx_editor.table_fixer import fix_all_tables
+        except ImportError:
+            fix_all_tables = None
 
     with zipfile.ZipFile(src, 'r') as zin, zipfile.ZipFile(tmp, 'w') as zout:
         for item in zin.infolist():
@@ -57,6 +67,13 @@ def fix_hwpx_namespaces(hwpx_path: str) -> None:
 
                 text = fix_xml_declaration(text)
                 text = fix_namespace_in_content(text)
+                
+                # Apply table fixes specifically to section XMLs
+                if fix_all_tables and item.filename.startswith('Contents/section'):
+                    fixed_text = fix_all_tables(text)
+                    if fixed_text != text:
+                        text = fixed_text
+                        tables_fixed = True
 
                 if text != original:
                     fixed_count += 1
@@ -67,6 +84,8 @@ def fix_hwpx_namespaces(hwpx_path: str) -> None:
 
     shutil.move(str(tmp), hwpx_path)
     print(f"✅ Namespace fix complete: {hwpx_path} ({fixed_count} XML files modified)")
+    if tables_fixed:
+        print(f"✅ Table Fixer applied successfully.")
 
 
 if __name__ == '__main__':

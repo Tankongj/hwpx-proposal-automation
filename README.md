@@ -280,49 +280,15 @@ Writing Style                     ✅   Formal endings: 340, vague expressions: 
 🏆 Status: Excellent — Ready to submit
 ```
 
-### 🖼️ 6단계: 이미지/표 삽입 (선택, Windows 전용)
+### 🖼️ 6단계: 이미지/표 삽입 (🚧 개발 예정)
 
-한컴오피스가 설치된 Windows에서만 사용 가능합니다. 차트 이미지나 데이터 표를 자동 삽입합니다:
+> COM API를 활용한 이미지/표 자동 삽입 기능은 현재 개발 중입니다.
+> 추후 버전에서 `enhance_hwpx.py`를 통해 지원될 예정입니다.
 
-```bash
-# 먼저 pywin32 설치
-pip install pywin32
+<!-- enhance_hwpx.py: Windows + 한컴오피스 COM API 기반 이미지/표 삽입 기능 -->
+<!-- 개발 완료 시 이 섹션을 활성화할 것 -->
 
-# 삽입할 내용을 JSON으로 정의
-# (examples/inserts_example.json 참고)
-
-# 실행
-python scripts/enhance_hwpx.py \
-  --input output/result.hwpx \
-  --output output/enhanced.hwpx \
-  --inserts my-inserts.json
-```
-
-`my-inserts.json` 예시:
-```json
-{
-  "images": [
-    {
-      "anchor": "사업추진 조직 체계",
-      "path": "charts/org-chart.png",
-      "width_mm": 155
-    }
-  ],
-  "tables": [
-    {
-      "anchor": "주요 KPI",
-      "headers": ["지표", "목표", "방법"],
-      "rows": [
-        ["수료인원", "14,000명", "교육 수료 기준"]
-      ]
-    }
-  ]
-}
-```
-
-> **⚠️ 이 기능은 한컴오피스 한글이 설치되어 있어야 합니다.** 한글의 COM API를 사용하여 실제 프로그램을 자동 제어합니다.
-
-### 👀 7단계: HTML 미리보기 (선택)
+### 👀 6단계: HTML 미리보기 (선택)
 
 한글 없이도 변환 결과를 브라우저에서 확인할 수 있습니다:
 
@@ -373,10 +339,9 @@ python scripts/visualize_hwpx.py output/result.hwpx preview.html "내 제안서"
                 verify_hwpx.py ──→ 자동 품질 검증
                       │
                       ▼
-             (선택) enhance_hwpx.py ──→ 이미지/표 삽입
-                      │
-                      ▼
                  ✅ 최종 .hwpx 제안서
+
+  🚧 (개발 예정) enhance_hwpx.py ──→ COM API 이미지/표 삽입
 ```
 
 ---
@@ -396,7 +361,7 @@ hwpx-proposal-automation/
 │   ├── md_to_hwpx.py            ← ★ 마크다운 → HWPX 변환기 (핵심!)
 │   ├── fix_namespaces.py        ← XML 네임스페이스 복원 (필수 후처리)
 │   ├── verify_hwpx.py           ← 결과물 자동 검증 (11개 검사 항목)
-│   ├── enhance_hwpx.py          ← COM API로 이미지/표 삽입 (Windows 전용)
+│   ├── enhance_hwpx.py          ← 🚧 이미지/표 삽입 (개발 예정, Windows 전용)
 │   ├── visualize_hwpx.py        ← HWPX → HTML 미리보기
 │   ├── generate_charts.py       ← matplotlib 차트 자동 생성
 │   ├── write_hwpx.py            ← ZIP 레벨 텍스트 치환
@@ -429,7 +394,7 @@ hwpx-proposal-automation/
 │
 ├── 📂 examples/                 ← 설정 파일 및 사용 예시
 │   ├── style_config_example.yaml  ← YAML 스타일 설정 예시
-│   ├── inserts_example.json     ← COM API 삽입 매핑 예시
+│   ├── inserts_example.json     ← 🚧 COM API 삽입 매핑 (개발 예정)
 │   └── example-content.md       ← 마크다운 입력 예시
 │
 ├── 📂 workflows/                ← 워크플로우 문서

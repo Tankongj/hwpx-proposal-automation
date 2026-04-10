@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📄 HWPX Proposal Automation
+# 📄 HWPX Proposal Automation_v260410_02
 
 **한글(HWPX) 제안서 자동 생성 도구 — PPT/PDF → 마크다운 → HWPX**
 

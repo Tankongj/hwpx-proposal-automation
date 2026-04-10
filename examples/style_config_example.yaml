@@ -1,0 +1,86 @@
+# HWPX Style Configuration Example
+# ==================================
+# This file maps markdown heading levels to HWPX style attributes.
+# Customize these values based on YOUR template's header.xml.
+#
+# Use analyze_template.py to discover the correct values:
+#   python scripts/analyze_template.py my-template.hwpx
+#
+# See docs/style-system.md for detailed explanation.
+
+# --- Style Mapping ---
+# Maps markdown element types to HWPX paragraph/character style IDs.
+# These values reference definitions in your template's header.xml.
+styles:
+  # Chapter title (# heading): e.g., "Ⅰ. 기관현황"
+  H1:
+    styleIDRef: "10"
+    paraPrIDRef: "3"
+    charPrIDRef: "19"
+    
+  # Section title (## heading): e.g., "1. 일반현황"  
+  H2:
+    styleIDRef: "8"
+    paraPrIDRef: "3"
+    charPrIDRef: "18"
+    # If H2 uses a number-box table structure, set this to true:
+    uses_table: true
+    
+  # Subsection (### heading)
+  H3:
+    styleIDRef: "7"
+    paraPrIDRef: "8"
+    charPrIDRef: "20"
+
+  # Sub-subsection (#### heading)
+  H4:
+    styleIDRef: "6"
+    paraPrIDRef: "9"
+    charPrIDRef: "21"
+
+  # Numbered item (##### heading): ①②③
+  H5:
+    styleIDRef: "0"
+    paraPrIDRef: "10"
+    charPrIDRef: "2"
+    
+  # Bullet item (- list): □
+  L1:
+    styleIDRef: "1"
+    paraPrIDRef: "11"
+    charPrIDRef: "2"
+
+  # Sub-bullet (* list): -
+  L2:
+    styleIDRef: "3"
+    paraPrIDRef: "13"
+    charPrIDRef: "22"
+
+# --- Auto-Bullet Dedup ---
+# Levels where the HWPX style automatically inserts bullet/number symbols.
+# Text prefixes matching these will be stripped to prevent duplication.
+# See docs/knowhow/bullet-dedup.md
+auto_bullet_levels:
+  - H3   # paraPr auto-inserts "n)"
+  - H4   # paraPr auto-inserts "(n)"
+  - H5   # paraPr auto-inserts "①②③"
+  - L1   # paraPr auto-inserts "□"
+  - L2   # paraPr auto-inserts "-"
+
+# --- Page Setup ---
+# Page margins in mm (preserved from template, shown here for reference)
+page_margins:
+  top: 15
+  bottom: 15
+  left: 20
+  right: 20
+  header: 10
+  footer: 10
+
+# --- Reference Document (Optional) ---
+# If you want to import cover/TOC/summary pages from a reference document:
+# reference:
+#   path: "input/reference/reference-proposal.hwpx"
+#   cover_range: "0:20"       # paragraph indices for cover pages
+#   toc_range: "20:69"        # paragraph indices for table of contents
+#   summary_range: "69:163"   # paragraph indices for summary table

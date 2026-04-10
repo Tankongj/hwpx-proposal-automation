@@ -1,0 +1,44 @@
+{
+  "_comment": "Example inserts.json for enhance_hwpx.py — defines images and tables to insert via COM API",
+  "_usage": "python scripts/enhance_hwpx.py --input result.hwpx --output enhanced.hwpx --inserts inserts.json",
+  
+  "images": [
+    {
+      "anchor": "사업추진 조직 체계",
+      "path": "slides/slide_06.png",
+      "width_mm": 155,
+      "_note": "anchor = text to search for; image inserted on next line"
+    },
+    {
+      "anchor": "3대 핵심 전략",
+      "path": "slides/slide_10.png",
+      "width_mm": 155
+    },
+    {
+      "anchor": "교육생 유입경로 분석 결과",
+      "path": "charts/chart_recruitment.png",
+      "width_mm": 140
+    }
+  ],
+  
+  "tables": [
+    {
+      "anchor": "RFP 주요 KPI",
+      "headers": ["성과지표", "목표치", "산출방법"],
+      "rows": [
+        ["교육 수료 인원", "14,000명 이상", "교육 수료 인원"],
+        ["교육 만족도", "90점 이상", "교육생 만족도 평균"],
+        ["콘텐츠 제작", "9과목 72차시", "온라인 콘텐츠 제작 편수"]
+      ]
+    },
+    {
+      "anchor": "최근 3개년 주요 실적 요약",
+      "headers": ["연도", "주요 사업", "수료인원"],
+      "rows": [
+        ["2023년", "귀농귀촌 아카데미", "1,298명"],
+        ["2024년", "농업일자리 체험교육", "906명"],
+        ["2025년", "농업e지 교육운영", "1,098명"]
+      ]
+    }
+  ]
+}

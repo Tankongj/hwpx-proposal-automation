@@ -2,328 +2,582 @@
 
 # 📄 HWPX Proposal Automation
 
-**Automate Korean government proposal generation in HWPX (Hancom Office) format**
+**한글(HWPX) 제안서 자동 생성 도구 — PPT/PDF → 마크다운 → HWPX**
 
-PPT/PDF → Markdown → HWPX — fully automated with AI agent skills and Python scripts.
+HWPX (한컴오피스 한글) 포맷의 정부·공공기관 제안서를 **파이썬 스크립트로 자동 생성**합니다.
 
-[한국어](#한국어) · [English](#english) · [Quick Start](#quick-start) · [Documentation](docs/)
+[빠른 시작](#-빠른-시작-5분-가이드) · [상세 사용법](#-상세-사용법) · [역공학 기술 문서](#-역공학-기술-문서) · [FAQ](#-자주-묻는-질문)
 
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 
 </div>
 
 ---
 
-## English
+## 📖 이게 뭔가요?
 
-### What is this?
+### 한 줄 요약
 
-HWPX is the open XML document format used by **Hancom Office (한컴오피스 한글)**, the most widely used word processor in Korean government and public institutions. This project provides:
+> **마크다운(`.md`)으로 작성한 제안서를 한컴오피스 한글 파일(`.hwpx`)로 자동 변환해주는 도구**입니다.
 
-1. **Python scripts** to programmatically create and modify HWPX documents
-2. **AI agent skills** (for Gemini/Claude-based coding agents) that automate the entire proposal writing pipeline
-3. **Reverse-engineered documentation** of the HWPX format — much of which is not covered in official docs
+### 왜 필요한가요?
 
-### Why does this exist?
+한국의 정부·공공기관 입찰 제안서는 반드시 `.hwpx` (한컴오피스 한글) 포맷으로 제출해야 합니다.
+하지만:
 
-Korean government proposals (제안서) must be submitted in `.hwpx` format with strict formatting requirements. Manually converting PPT presentations into formatted HWPX documents is tedious and error-prone. This project automates:
+- 한글로 직접 제안서를 작성하면 스타일 맞추기가 **매우 번거롭고**
+- PPT 제안서를 한글로 옮기면 **서식이 다 깨지고**
+- 매번 같은 양식에 내용만 바꿔 넣는 **반복 작업이 많습니다**
 
-- **PDF/PPT text extraction** → structured data
-- **Markdown draft generation** → review and iterate
-- **HWPX template injection** → preserving the original form's styles
-- **Automated verification** → checking structure, symbols, writing style
-
-### Key Technical Discoveries
-
-These findings are **not documented** in official Hancom resources:
-
-| Discovery | Details |
-|-----------|---------|
-| `charPrIDRef` mapping | Actual font/size is determined by `header.xml` charPr definitions, not style names |
-| `pos.treatAsChar` | Controls table page-breaking behavior — `tbl.textWrap` alone is insufficient |
-| `linesegarray` cache | Must be removed after `deepcopy` — Hancom regenerates on open |
-| `hp:subList` requirement | Table cells require `tc → subList → p` structure, not direct `p` |
-| Namespace prefix issue | `lxml` serialization adds `ns0:` prefix — must be removed via regex |
-| `HwpxDocument.open()` limitation | Fails on complex templates — ZIP-level replacement is safer |
-
-### Architecture
+이 도구는 그 과정을 **자동화**합니다:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    AI Agent Skills Layer                      │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
-│  │ Analyzer │→│ Architect│→│  Writer  │→│ Reviewer │        │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
-│         RFP Analysis  Structure    Content    Quality        │
-│                       Design       Generation  Audit         │
-├─────────────────────────────────────────────────────────────┤
-│                    Python Scripts Layer                       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
-│  │extract   │ │analyze   │ │md_to_hwpx│ │fix_ns    │        │
-│  │_pdf.py   │ │_template │ │.py       │ │.py       │        │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
-│  ┌──────────┐ ┌──────────┐                                   │
-│  │write_hwpx│ │verify    │   Libraries: lxml, python-hwpx   │
-│  │.py       │ │_hwpx.py  │              pdfplumber, zipfile  │
-│  └──────────┘ └──────────┘                                   │
-├─────────────────────────────────────────────────────────────┤
-│  Input: PPT/PDF + HWPX Template  →  Output: HWPX + PDF      │
-└─────────────────────────────────────────────────────────────┘
+📝 마크다운으로 내용 작성  →  🔄 자동 변환  →  📄 완성된 .hwpx 제안서
 ```
+
+### 누가 쓰면 좋나요?
+
+- ✅ 정부·지자체 용역 제안서를 자주 쓰는 **기업/기관 담당자**
+- ✅ 제안서 자동화에 관심 있는 **개발자**
+- ✅ AI 에이전트로 제안서를 만들고 싶은 **테크 스타트업**
+- ✅ HWPX 포맷을 프로그래밍으로 다루고 싶은 **한컴 생태계 개발자**
 
 ---
 
-## 한국어
+## ⚡ 빠른 시작 (5분 가이드)
 
-### 이 프로젝트는 무엇인가요?
-
-한국 정부·공공기관 **제안서(HWPX)** 작성을 자동화하는 도구 모음입니다.
-
-PPT/PDF 제안서를 한컴오피스 한글 서식(`.hwpx`)에 맞게 자동 변환합니다.
-
-### 핵심 구성 요소
-
-| 구성 | 설명 |
-|------|------|
-| **Python 스크립트 7종** | PPT 파싱, PDF 추출, 템플릿 분석, 마크다운→HWPX 변환, 네임스페이스 복원, 자가검증 |
-| **AI 스킬 5종** | PPT 파싱 결과 기반 RFP 분석 → 구조 설계 → 콘텐츠 작성 → 리뷰 → HWPX 변환 |
-| **역공학 문서** | 공식 문서에 없는 HWPX 포맷 기술 지식 |
-| **워크플로우** | 제안서 작성 전체 프로세스 자동화 |
-
-### 작동 원리
-
-```
-PPT/PDF 제안서 ──→ 텍스트 추출 ──→ 마크다운 초안 ──→ HWPX 변환
-                        ↓                 ↓              ↓
-                  RFP 분석          사용자 검토     네임스페이스 복원
-                  평가매트릭스       내용 수정       자동 검증
-                                                      ↓
-                                                 ✅ 최종 HWPX
-```
-
-### HWPX 포맷 핵심 기술
-
-이 프로젝트에서 발견한 **공식 문서에 없는** 핵심 기술들:
-
-1. **ZIP-level XML 치환** — `HwpxDocument.open()`보다 안전한 방식
-2. **charPrIDRef 실측값** — header.xml의 실제 폰트/크기 매핑
-3. **`pos.treatAsChar` 제어** — 표 페이지 넘김의 진짜 핵심 속성
-4. **`linesegarray` 캐시 제거** — deepcopy 후 필수 후처리
-5. **네임스페이스 접두사 제거** — lxml 직렬화 후 필수 정규식 처리
-
-## 💡 Advanced AI & 외부 생태계 통합 (Harness Engineering)
-
-본 프로젝트는 최신 AI 에이전트 패러다임인 **Harness Engineering** 철학에 입각하여 설계되었습니다.
-
-- **PPT 자동 파싱 (`extract_ppt.py`)**: `python-pptx`를 이용해 PPT 슬라이드의 텍스트와 표 구조를 직접 JSON으로 추출하여 AI가 완벽히 이해할 수 있도록 돕습니다.
-- **외부 도구 완벽 호환**: 이 저장소의 파이프라인은 직접 만든 파이썬 스크립트 외에도 오픈소스 HWPX 조작 생태계(`hwpilot`, `hwpxskill` 등)와 결합할 수 있도록 유연하게 짜여 있습니다.
-- **AI 에이전트 워크플로우 보장 (`AGENTS.md`)**: 에이전트가 어떤 순서로 판단하고 작업할지 명확히 제한하여 환각(Hallucination) 없이 반복적인 성과를 냅니다.
-
----
-
-## Quick Start (빠른 시작 가이드)
-
-본 저장소의 스크립트들은 파이썬 환경만 있으면 작동하도록 설계되었습니다. 복잡한 한글 오피스 API 연동이 필요 없습니다! 🚀
-
-### 0. 설치 방법 (Installation)
+### Step 0: 설치
 
 ```bash
-# 저장소 클론 (Clone the repository)
+# 1. 저장소 다운로드
 git clone https://github.com/Tankongj/hwpx-proposal-automation.git
 cd hwpx-proposal-automation
 
-# 의존성 패키지 설치 (Install dependencies)
+# 2. (권장) 가상환경 생성
+python -m venv venv
+
+# Windows:
+venv\Scripts\activate
+
+# macOS/Linux:
+source venv/bin/activate
+
+# 3. 필수 패키지 설치
 pip install -r requirements.txt
 ```
 
-> **Tip:** 가상환경(`python -m venv venv`)을 만들어서 설치하시는 것을 권장합니다.
+> **💡 파이썬이 없다면?** [python.org](https://www.python.org/downloads/)에서 Python 3.9 이상을 설치하세요.
 
----
+### Step 1: 템플릿 준비
 
-### 👨‍💻 사람이 할 일 vs 🤖 AI가 할 일 (작업 분담 가이드)
+빈 한글 양식(`.hwpx`)을 `templates/` 폴더에 넣습니다.
 
-이 도구는 **인간의 창의적 작업(기초 데이터 준비)**과 **AI의 단순 노동(양식 맞춤 조립)**을 완벽히 분리합니다.
+```
+templates/
+└── my-template.hwpx    ← 여러분의 빈 양식 파일
+```
 
-**✅ 사람이 할 일 (마우스 드래그 앤 드롭)**
-1. `templates/` 폴더에 빈 제안서 양식 `.hwpx` 채워넣기
-2. `input/` 폴더에 가공할 PPT 내용, PDF 공고문, 참고자료 파일 넣어두기
-3. (선택) `examples/example-content.md`를 참고해 뼈대 내용만 마크다운으로 정리해두기
+> **💡 양식이 없다면?** 한컴 한글에서 `파일 → 새 문서 → 빈 문서`로 만들어 `.hwpx`로 저장하세요.
 
-**✅ AI/자동화가 할 일 (아래 스크립트들이 수행)**
-위처럼 재료만 모아두면, 다음 스크립트들이 **"내용 파싱 → 템플릿 주입 → HWPX 생성 → 표 오류 복원 → 규격 검증"** 까지의 모든 과정을 10초 만에 자동으로 완료합니다.
+### Step 2: 마크다운 초안 작성
 
----
+제안서 내용을 마크다운으로 작성합니다. `examples/example-content.md`를 참고하세요.
 
-### 1단계: 내 템플릿 분석하기 (Analyze Template)
-먼저, 여러분이 가진 빈 한글 파일(HWPX)의 스타일 ID를 알아내야 합니다.
+```markdown
+# Ⅰ. 사업 이해
+
+## 1. 추진 배경 및 필요성
+
+□ 사업 추진 배경
+- 정부의 귀농귀촌 지원 정책 확대에 따른 교육 수요 급증
+  * 2025년 귀농가구 수 전년 대비 12% 증가
+  * 귀촌 희망자 대상 사전 교육 매우 중요
+- 기존 교육 프로그램의 한계
+  * 대면 교육 비중이 22%에 불과
+
+## 2. 사업 목표
+
+□ 핵심 성과 지표 (KPI)
+- 교육 수료 인원: 14,000명 이상
+- 교육 만족도: 90점 이상
+
+※ 상기 KPI는 RFP에 명시된 필수 달성 목표임
+```
+
+**마크다운 기호 규칙:**
+
+| 기호 | 의미 | 예시 |
+|------|------|------|
+| `# 제목` | 장(Chapter) 제목 | `# Ⅰ. 사업 이해` |
+| `## 제목` | 절(Section) 제목 | `## 1. 추진 배경` |
+| `### 제목` | 소절 제목 | `### 가. 현황 분석` |
+| `□` | 대주제 | `□ 사업 추진 배경` |
+| `-` | 중주제 | `- 세부 내용` |
+| `*` | 소주제 | `* 더 세부적인 내용` |
+| `※` | 참고/주석 | `※ 출처: 통계청 2025` |
+
+### Step 3: 변환 실행 (3줄이면 끝!)
 
 ```bash
-python scripts/analyze_template.py my-template.hwpx
+# 1️⃣ 마크다운 → HWPX 변환
+python scripts/md_to_hwpx.py \
+  --template templates/my-template.hwpx \
+  --md my-draft.md \
+  --output output/result.hwpx
+
+# 2️⃣ 네임스페이스 수정 (필수! 이거 안 하면 한글에서 빈 페이지로 보임)
+python scripts/fix_namespaces.py output/result.hwpx
+
+# 3️⃣ 결과 검증 (선택, 하지만 강력 권장)
+python scripts/verify_hwpx.py output/result.hwpx
 ```
-- 화면에 빈 파일 내의 임시 텍스트와 파일 구조가 출력됩니다.
-- 이 정보를 바탕으로 폰트나 글자 크기가 지정된 `charPrIDRef` 값을 찾아 향후 커스텀에 활용할 수 있습니다. 자세한 방법은 [Style System 문서](docs/style-system.md)를 참고하세요.
 
-### 2단계: 마크다운 초안 작성하기 (Write Draft)
-`examples/example-content.md`를 참고하여, HWPX로 변환될 내용의 마크다운 초안을 작성합니다.
-> **문법 규칙:** 대주제는 `□`, 중주제는 `○`, 소주제는 `―`로 시작하면 자동으로 한글(HWPX)의 들여쓰기와 스타일 매핑이 적용됩니다.
+끝! `output/result.hwpx`를 한컴오피스 한글로 열어보세요. 🎉
 
-### 3단계: 마크다운을 HWPX로 변환 (Convert to HWPX)
-가장 핵심이 되는 스크립트입니다. 마크다운의 내용을 빈 템플릿의 서식에 맞춰 HWPX로 찍어냅니다.
+---
+
+## 📚 상세 사용법
+
+### 🔍 1단계: 템플릿 분석하기
+
+한글 양식마다 스타일 ID가 다릅니다. 내 양식의 ID를 먼저 알아야 합니다:
+
+```bash
+python scripts/analyze_template.py templates/my-template.hwpx
+```
+
+출력 예시:
+```
+📋 Template Analysis: my-template.hwpx
+  File size: 45,230 bytes
+  Sections: 1
+
+  charPr Table (header.xml):
+    ID  0: font=한양신명조  size=10pt
+    ID  2: font=휴먼명조    size=15pt  ← 본문용
+    ID 19: font=HY견고딕    size=18pt  ← 제목용
+    ...
+```
+
+### ⚙️ 2단계: 스타일 설정 (선택)
+
+기본값으로도 동작하지만, 양식에 맞는 정확한 스타일을 지정하고 싶다면 YAML 설정 파일을 만듭니다:
+
+```bash
+# 예시 파일을 복사해서 커스터마이즈
+cp examples/style_config_example.yaml my-config.yaml
+```
+
+`my-config.yaml` 수정:
+```yaml
+styles:
+  H1:  {styleIDRef: "10", paraPrIDRef: "3",  charPrIDRef: "19"}  # 장 제목
+  H2:  {styleIDRef: "8",  paraPrIDRef: "3",  charPrIDRef: "18"}  # 절 제목
+  L1:  {styleIDRef: "1",  paraPrIDRef: "11", charPrIDRef: "2"}   # 본문 항목
+  L2:  {styleIDRef: "3",  paraPrIDRef: "13", charPrIDRef: "22"}  # 하위 항목
+```
+
+> **💡 ID 값은 어디서 찾나요?** 위의 `analyze_template.py` 출력 결과에서 확인하세요.
+
+변환 시 설정 파일 적용:
+```bash
+python scripts/md_to_hwpx.py \
+  --template templates/my-template.hwpx \
+  --md my-draft.md \
+  --output output/result.hwpx \
+  --config my-config.yaml
+```
+
+### 📋 3단계: 레퍼런스 문서에서 표지/목차 가져오기 (선택)
+
+기존 제안서의 표지·목차·조견표를 새 문서에 안전하게 이식할 수 있습니다:
 
 ```bash
 python scripts/md_to_hwpx.py \
-  --template my-template.hwpx \
+  --template templates/my-template.hwpx \
   --md my-draft.md \
-  --output result.hwpx
-```
-- `--cover-keywords "제안서" "2026"` 처럼 옵션을 주면 템플릿의 표지가 유지됩니다.
-
-### 4단계: 네임스페이스 복원 (Fix Namespaces - 필수!)
-변환 직후의 파일은 구조적으로 약간 꼬여있을 수 있습니다. 한글 뷰어에서 내용이 누락되는(빈 페이지 여백 이슈) 것을 막기 위해 **반드시** 후처리를 실행해야 합니다.
-
-```bash
-python scripts/fix_namespaces.py result.hwpx
+  --output output/result.hwpx \
+  --reference input/previous-proposal.hwpx \
+  --cover-range 0:20 \
+  --toc-range 20:69
 ```
 
-### 5단계: 문서 자동 검증 (Verify Output)
-수십 페이지가 넘는 제안서에 누락된 부분이 없는지 5초 만에 검증해 보세요!
+| 옵션 | 설명 |
+|------|------|
+| `--reference` | 표지/목차를 가져올 기존 제안서 파일 |
+| `--cover-range 0:20` | 표지 영역 (0~19번째 문단) |
+| `--toc-range 20:69` | 목차 영역 (20~68번째 문단) |
+| `--summary-range 69:163` | 조견표 영역 (69~162번째 문단) |
+
+> **💡 문단 범위는 어떻게 아나요?** `analyze_template.py`를 레퍼런스 문서에 대해 실행하면 각 문단의 텍스트와 인덱스가 출력됩니다.
+
+> **⚠️ 이 기능은 내부적으로 [Style Remapper](docs/knowhow/style-remapper.md)를 사용**합니다. 레퍼런스와 템플릿의 스타일 ID가 달라도 자동으로 충돌 없이 매핑합니다.
+
+### 🔧 4단계: 네임스페이스 수정 (필수)
+
+`md_to_hwpx.py` 실행 후 **반드시** 이 명령을 실행해야 합니다:
 
 ```bash
-# 정성제안서 기호 및 문체 검증
-python scripts/verify_hwpx.py result.hwpx --type qualitative
+# 기본 수정
+python scripts/fix_namespaces.py output/result.hwpx
 
-# 정량제안서 표 공란율 및 특정 키워드 검증
-python scripts/verify_hwpx.py result.hwpx --type quantitative --company-keywords "내회사이름"
+# 표(Table) 페이지 넘김도 수정하려면:
+python scripts/fix_namespaces.py output/result.hwpx --fix-tables
+```
+
+> **❓ 왜 필수인가요?** 파이썬의 XML 라이브러리(lxml)가 `<ns0:p>` 같은 이상한 태그를 만들어서 한컴 한글이 읽지 못합니다. 이 스크립트가 정상적인 `<hp:p>` 태그로 복원합니다. ([상세 원인 보기](docs/knowhow/namespace-corruption.md))
+
+### ✅ 5단계: 자동 검증
+
+수십 페이지 제안서의 품질을 5초 만에 검증합니다:
+
+```bash
+# 정성제안서 (기호 체계, 문체, 페이지 수 검증)
+python scripts/verify_hwpx.py output/result.hwpx --type qualitative
+
+# 정량제안서 (표 채움률, 이력서 섹션, 회사 키워드 검증)
+python scripts/verify_hwpx.py output/result.hwpx --type quantitative --company-keywords "우리회사" "대표이름"
+```
+
+출력 예시:
+```
+============================================================
+📋 HWPX Self-Verification System
+   File: result.hwpx
+   Size: 128,450 bytes
+   Type: qualitative
+============================================================
+──────────────────────────────────────────────────────
+Item                           Result   Detail
+──────────────────────────────────────────────────────
+File Structure                    ✅   section=True, header=True, hpf=True
+content.hpf Integrity             ✅   sections=1, all referenced
+Date Fields                       ✅   Date placeholder: none ✅
+Namespace Pollution               ✅   No namespace pollution found ✅
+Table treatAsChar                 ✅   treatAsChar=0: 5, treatAsChar=1: 0 ✅
+Chapter Structure (Ⅰ~Ⅳ)          ✅   Chapters found: ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ']
+Symbol System (□○―※)             ✅   □=45, ○=89, ―=120, ※=15
+Writing Style                     ✅   Formal endings: 340, vague expressions: 2
+
+📊 Summary: 8/8 passed (100%)
+🏆 Status: Excellent — Ready to submit
+```
+
+### 🖼️ 6단계: 이미지/표 삽입 (선택, Windows 전용)
+
+한컴오피스가 설치된 Windows에서만 사용 가능합니다. 차트 이미지나 데이터 표를 자동 삽입합니다:
+
+```bash
+# 먼저 pywin32 설치
+pip install pywin32
+
+# 삽입할 내용을 JSON으로 정의
+# (examples/inserts_example.json 참고)
+
+# 실행
+python scripts/enhance_hwpx.py \
+  --input output/result.hwpx \
+  --output output/enhanced.hwpx \
+  --inserts my-inserts.json
+```
+
+`my-inserts.json` 예시:
+```json
+{
+  "images": [
+    {
+      "anchor": "사업추진 조직 체계",
+      "path": "charts/org-chart.png",
+      "width_mm": 155
+    }
+  ],
+  "tables": [
+    {
+      "anchor": "주요 KPI",
+      "headers": ["지표", "목표", "방법"],
+      "rows": [
+        ["수료인원", "14,000명", "교육 수료 기준"]
+      ]
+    }
+  ]
+}
+```
+
+> **⚠️ 이 기능은 한컴오피스 한글이 설치되어 있어야 합니다.** 한글의 COM API를 사용하여 실제 프로그램을 자동 제어합니다.
+
+### 👀 7단계: HTML 미리보기 (선택)
+
+한글 없이도 변환 결과를 브라우저에서 확인할 수 있습니다:
+
+```bash
+python scripts/visualize_hwpx.py output/result.hwpx preview.html "내 제안서"
+```
+
+`preview.html`을 브라우저로 열면 각 문단의 폰트, 크기, 스타일 ID가 표시됩니다.
+
+---
+
+## 🏗️ 전체 파이프라인 흐름
+
+```
+                    ╔═══════════════════════════════════════╗
+                    ║      전체 워크플로우 (Data Flow)      ║
+                    ╚═══════════════════════════════════════╝
+
+   [입력]                    [처리]                      [출력]
+   ─────                    ──────                      ──────
+
+   PPT/PDF ──→ extract_pdf.py ──→ 원본 텍스트
+                                      │
+                              AI 에이전트 또는 수동
+                                      │
+                                      ▼
+   RFP 공고문 ──→ 평가항목 분석 ──→ 마크다운 초안 (.md)
+                                      │
+                                      ▼
+   HWPX 양식 ──→ analyze_template ──→ 스타일 ID 매핑
+        │                                │
+        └──────────────┬─────────────────┘
+                       ▼
+                 md_to_hwpx.py ──→ 변환된 HWPX (미완성)
+                       │
+                       ▼
+                 fix_namespaces.py ──→ 네임스페이스 수정
+                       │
+                       ▼
+                 verify_hwpx.py ──→ 자동 품질 검증
+                       │
+                       ▼
+              (선택) enhance_hwpx.py ──→ 이미지/표 삽입
+                       │
+                       ▼
+                  ✅ 최종 .hwpx 제안서
 ```
 
 ---
 
-### (고급 설정) ZIP 레벨 치환 사용하기
-단순히 표지 날짜나 이름만 바꾸려면 `write_hwpx.py`를 파이썬 코드에서 불러와 사용할 수 있습니다.
-
-```python
-from scripts.write_hwpx import zip_replace, zip_replace_sequential
-
-# 일괄 치환 (모든 곳의 해당 단어를 변경)
-zip_replace("template.hwpx", "output.hwpx", {
-    "PLACEHOLDER_TITLE": "우주 최강 제안서",
-    "PLACEHOLDER_DATE": "2026. 4. 8.",
-})
-
-# 순차 치환 (이력서 등 동일 항목이 반복될 때 순서대로 값 넣기)
-zip_replace_sequential("output.hwpx", "output.hwpx",
-    "PLACEHOLDER_NAME", ["홍길동", "김파이썬", "박지피티"])
-```
-
-### (고급 설정) 기존 파일 수정 및 표 자동보정 API 사용하기 (v0.2+)
-새로 추가된 `hwpx_editor` 패키지를 이용하면 단순 치환을 넘어, 기존 문서의 단락을 삽입/수정하고 깨진 표 구조를 자동 보정할 수 있습니다.
-
-```python
-from scripts.hwpx_editor import open_hwpx, update_section, replace_text
-
-# 기존 파일 불러오기 및 텍스트 안전 변경 (바이트 보존)
-update_section('my-proposal.hwpx', 'Contents/section0.xml', 
-               lambda xml: replace_text(xml, '2025년', '2026년'),
-               output_path='updated-proposal.hwpx')
-```
-
-### AI 에이전트와 함께 쓰기 (Gemini/Claude)
-이 저장소에 있는 `skills/` 디렉토리를 여러분의 AI 코드 에이전트 환경에 복사해 넣으면, AI가 제안서를 분석하고, 작성하고, HWPX로 만들어 검사하는 전 과정을 자동으로 수행합니다! (상세 내용은 `workflows/` 폴더 참조)
-
----
-
-## Project Structure
+## 📁 프로젝트 구조
 
 ```
 hwpx-proposal-automation/
-├── README.md                    # This file
-├── requirements.txt             # Python dependencies
-├── pyproject.toml               # Project metadata
 │
-├── scripts/                     # Python automation scripts
-│   ├── extract_ppt.py           # PPT/PPTX slide & table extractor
-│   ├── analyze_template.py      # HWPX template text inspector
-│   ├── write_hwpx.py            # ZIP-level batch/sequential replacement
-│   ├── md_to_hwpx.py            # Markdown → HWPX converter (core)
-│   ├── fix_namespaces.py        # XML namespace post-processor
-│   ├── verify_hwpx.py           # HWPX self-verification system
-│   ├── extract_pdf.py           # PDF text extractor
-│   └── hwpx_editor/             # Advanced byte-preserving HWPX editor API
-│       ├── _parser.py           # Depth-tracking string XML parser
-│       ├── table_fixer.py       # Table pagination and colSpan solver
-│       └── modify_hwpx.py       # Safe XML text/paragraph replacer
+├── 📄 README.md                 ← 지금 읽고 있는 이 문서
+├── 📄 AGENTS.md                 ← AI 에이전트 작업 규칙
+├── 📄 requirements.txt          ← 파이썬 패키지 목록
+├── 📄 .gitignore
 │
-├── skills/                      # AI Agent skill definitions
-│   ├── hwpx-proposal/           # HWPX document creation skill
-│   ├── proposal-analyzer/       # RFP analysis skill
-│   ├── proposal-architect/      # Structure design skill
-│   ├── proposal-writer/         # Content generation skill
-│   └── proposal-reviewer/       # 7-Dimension review skill
+├── 🔧 scripts/                  ← 핵심 파이썬 스크립트
+│   ├── analyze_template.py      ← 양식의 스타일 ID 분석
+│   ├── md_to_hwpx.py            ← ★ 마크다운 → HWPX 변환기 (핵심!)
+│   ├── fix_namespaces.py        ← XML 네임스페이스 복원 (필수 후처리)
+│   ├── verify_hwpx.py           ← 결과물 자동 검증 (11개 검사 항목)
+│   ├── enhance_hwpx.py          ← COM API로 이미지/표 삽입 (Windows 전용)
+│   ├── visualize_hwpx.py        ← HWPX → HTML 미리보기
+│   ├── generate_charts.py       ← matplotlib 차트 자동 생성
+│   ├── write_hwpx.py            ← ZIP 레벨 텍스트 치환
+│   ├── extract_pdf.py           ← PDF 텍스트 추출
+│   ├── extract_ppt.py           ← PPT 슬라이드/표 추출
+│   └── hwpx_editor/             ← 고급 HWPX 편집 API
+│       ├── _parser.py           ← XML 문자열 파서
+│       ├── table_fixer.py       ← 표 구조 자동 보정
+│       └── modify_hwpx.py       ← 안전한 텍스트/문단 교체
 │
-├── docs/                        # Technical documentation
-│   ├── architecture.md          # System architecture
-│   ├── hwpx-format-guide.md     # HWPX format reverse-engineering
-│   ├── style-system.md          # Style ID mapping tables
-│   ├── table-pagebreak.md       # Table page-break solution
-│   └── troubleshooting.md       # Common issues & fixes
+├── 🤖 skills/                   ← AI 에이전트 스킬 정의
+│   ├── hwpx-proposal/           ← HWPX 문서 생성 스킬
+│   ├── proposal-analyzer/       ← RFP 분석 스킬
+│   ├── proposal-architect/      ← 구조 설계 스킬
+│   ├── proposal-writer/         ← 콘텐츠 작성 스킬
+│   └── proposal-reviewer/       ← 7차원 품질 검토 스킬
 │
-├── workflows/                   # Automation workflows
-│   └── write-proposal.md        # End-to-end proposal workflow
+├── 📖 docs/                     ← 기술 문서
+│   ├── architecture.md          ← 시스템 아키텍처
+│   ├── hwpx-format-guide.md     ← HWPX 포맷 가이드 (역공학)
+│   ├── style-system.md          ← ★ 스타일 ID 매핑 + 절대규칙 8가지
+│   ├── table-pagebreak.md       ← ★ 표 페이지 넘김 3조건 해결법
+│   ├── knowhow-management-rules.md  ← 지식 기여 가이드라인
+│   ├── knowhow/                 ← ★ 역공학 지식 베이스
+│   │   ├── style-remapper.md    ← 스타일 ID 충돌 방지 기술
+│   │   ├── namespace-corruption.md  ← 빈 페이지 문제 해결
+│   │   ├── bullet-dedup.md      ← 글머리표 중복 방지
+│   │   └── com-api-pitfalls.md  ← 한글 COM API 주의사항
+│   └── troubleshooting.md       ← 문제 해결 가이드
 │
-├── templates/                   # Example HWPX templates
-│   └── (add your .hwpx here)
+├── 📂 examples/                 ← 설정 파일 및 사용 예시
+│   ├── style_config_example.yaml  ← YAML 스타일 설정 예시
+│   ├── inserts_example.json     ← COM API 삽입 매핑 예시
+│   └── example-content.md       ← 마크다운 입력 예시
 │
-└── examples/                    # Usage examples
-    └── example-content.md       # Sample markdown input
+├── 📂 workflows/                ← 워크플로우 문서
+│   └── write-proposal.md       ← 전체 프로세스 안내
+│
+└── 📂 templates/                ← 한글 양식 파일 보관
+    └── (여기에 .hwpx 넣기)
 ```
 
 ---
 
-## Documentation
+## 🔬 역공학 기술 문서
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](docs/architecture.md) | System design and data flow |
-| [HWPX Format Guide](docs/hwpx-format-guide.md) | Reverse-engineered HWPX internals |
-| [Style System](docs/style-system.md) | charPrIDRef, font tables, style mapping |
-| [Table Page-break](docs/table-pagebreak.md) | How to make tables break across pages |
-| [Troubleshooting](docs/troubleshooting.md) | Common errors and their solutions |
-| [Competitive Analysis](docs/competitive-analysis.md) | Comparison with other HWPX open-source tools |
+이 프로젝트에서 발견한 **공식 문서에 없는** 핵심 기술들입니다.
+53회 이상의 반복 시행착오와 실측을 통해 검증되었습니다.
+
+### 핵심 발견사항 요약
+
+| 발견 | 핵심 내용 | 상세 문서 |
+|------|----------|----------|
+| **스타일 ID 충돌** | 레퍼런스 문서의 스타일을 이식하면 글꼴이 깨짐 → `max_id+1` 방식으로 새 ID 할당 | [style-remapper.md](docs/knowhow/style-remapper.md) |
+| **빈 페이지 문제** | lxml이 `<ns0:p>` 접두사를 추가 → 한글이 파싱 실패 → 정규식 제거 필수 | [namespace-corruption.md](docs/knowhow/namespace-corruption.md) |
+| **글머리표 중복** | `□ □ 대주제` 이중 표시 → 스타일 자동 불릿과 텍스트 기호가 겹침 | [bullet-dedup.md](docs/knowhow/bullet-dedup.md) |
+| **표 페이지 넘김** | `pos.treatAsChar="0"`이 핵심 — `tbl.textWrap`만으로는 부족 | [table-pagebreak.md](docs/table-pagebreak.md) |
+| **COM API 한계** | `FindWordByWord`는 유효하지 않은 속성, `TreatAsChar`는 pos를 안 바꿈 | [com-api-pitfalls.md](docs/knowhow/com-api-pitfalls.md) |
+| **charPrIDRef 실측값** | `63=20pt 휴먼명조`, `64=18pt HY견고딕` 등 — header.xml에서만 확인 가능 | [style-system.md](docs/style-system.md) |
+
+### charPrIDRef 실측값 테이블 (v4 서식 기준)
+
+```
+charPrIDRef  크기    폰트        용도
+───────────  ────    ────        ────
+63           20pt    휴먼명조     장 제목, □ 대주제
+64           18pt    HY견고딕    절 제목
+65           15pt    휴먼명조     ❍ 중주제
+66           15pt    휴먼명조     - 세부, · 상세
+67           13pt    한양중고딕   * 참고/주석
+```
+
+> ⚠️ 이 값들은 서식(양식)마다 다릅니다! 반드시 `analyze_template.py`로 확인하세요.
 
 ---
 
-## Contributing
+## 🤖 AI 에이전트와 함께 쓰기
 
-Contributions are welcome! This project benefits the Korean developer community working with Hancom Office documents. Please:
+이 저장소의 `skills/` 디렉토리를 AI 코딩 에이전트(Gemini, Claude, ChatGPT 등)에 연결하면,
+**제안서 분석 → 구조 설계 → 콘텐츠 작성 → HWPX 변환**까지 전 과정을 자동화할 수 있습니다.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+```
+AI Skill 체인:
+  proposal-analyzer → proposal-architect → proposal-writer → proposal-reviewer → hwpx-proposal
+  (RFP 분석)         (구조 설계)          (콘텐츠 작성)      (품질 검토)         (HWPX 변환)
+```
 
----
-
-## License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+자세한 AI 에이전트 규칙은 [AGENTS.md](AGENTS.md)를 참고하세요.
 
 ---
 
-## Acknowledgments
+## ❓ 자주 묻는 질문
 
-- **HWPX/OWPML Standard** — KS X 6101 (Korean open document standard)
-- **python-hwpx** — Python library for HWPX document handling
-- **python-pptx** — Standard library for PPT extraction
-- **hwpilot & hwpxskill** — Excellent external tools for granular HWPX editing
-- **Antigravity** — AI coding agent that built and iterated this system
+<details>
+<summary><b>Q: 한컴오피스 한글이 설치되어 있어야 하나요?</b></summary>
+
+**A: 아닙니다!** 핵심 기능(마크다운→HWPX 변환)은 순수 파이썬으로 동작하므로 Windows, macOS, Linux 어디서든 사용할 수 있습니다. 한컴오피스는 **결과물을 열어볼 때**만 필요합니다.
+
+단, `enhance_hwpx.py`(이미지/표 삽입)는 Windows + 한컴오피스가 필요합니다.
+</details>
+
+<details>
+<summary><b>Q: 변환 후 한글로 열었는데 빈 페이지만 보입니다</b></summary>
+
+**A: `fix_namespaces.py`를 실행하셨나요?** 이 후처리를 빠뜨리면 한글이 XML을 읽지 못해 빈 페이지가 표시됩니다.
+
+```bash
+python scripts/fix_namespaces.py output/result.hwpx
+```
+
+원인: [docs/knowhow/namespace-corruption.md](docs/knowhow/namespace-corruption.md)
+</details>
+
+<details>
+<summary><b>Q: 표가 페이지를 넘어가지 않고 잘립니다</b></summary>
+
+**A: `--fix-tables` 옵션으로 표 속성을 수정하세요:**
+
+```bash
+python scripts/fix_namespaces.py output/result.hwpx --fix-tables
+```
+
+이 옵션은 `pos.treatAsChar`를 `0`으로 변경합니다.
+원인: [docs/table-pagebreak.md](docs/table-pagebreak.md)
+</details>
+
+<details>
+<summary><b>Q: □가 두 번 표시됩니다 (□ □ 대주제)</b></summary>
+
+**A: 자동 글머리표 중복 문제입니다.** HWPX 스타일이 자동으로 `□`를 삽입하는데, 텍스트에도 `□`가 있으면 중복됩니다.
+
+해결: 마크다운에서 기호를 빼거나, `strip_auto_prefixes()` 기능이 자동으로 처리합니다.
+상세: [docs/knowhow/bullet-dedup.md](docs/knowhow/bullet-dedup.md)
+</details>
+
+<details>
+<summary><b>Q: 내 양식의 스타일 ID를 어떻게 알 수 있나요?</b></summary>
+
+**A: `analyze_template.py`를 사용하세요:**
+
+```bash
+python scripts/analyze_template.py templates/my-template.hwpx
+```
+
+각 charPrIDRef의 폰트, 크기, 볼드 여부가 출력됩니다.
+</details>
+
+<details>
+<summary><b>Q: pip install에서 에러가 납니다</b></summary>
+
+**A: Python 버전을 확인하세요:**
+
+```bash
+python --version    # 3.9 이상이어야 합니다
+pip install --upgrade pip
+pip install lxml pdfplumber PyYAML
+```
+
+Windows에서 lxml 설치 오류 시:
+```bash
+pip install lxml --only-binary=:all:
+```
+</details>
+
+---
+
+## 🤝 기여하기
+
+기여를 환영합니다! 특히 **지식 기여(Knowledge Contribution)**를 매우 환영합니다.
+
+### 코드 기여
+
+1. Fork → 2. Branch 생성 → 3. Commit → 4. Push → 5. Pull Request
+
+### 지식 기여 (역공학 노하우)
+
+HWPX 개발하면서 새로 발견한 동작 원리나 버그 우회법이 있다면, [3-Step Rule](docs/knowhow-management-rules.md) 형식으로 `docs/knowhow/` 폴더에 문서를 추가해 주세요:
+
+1. **현상 분석** (UI에서 뭐가 보이는지)
+2. **원인 규명** (XML 구조에서 왜 그런지)
+3. **해결 코드** (파이썬으로 어떻게 고치는지)
+
+---
+
+## 📜 라이선스
+
+MIT License — [LICENSE](LICENSE) 파일 참조
+
+---
+
+## 🙏 감사
+
+- **HWPX/OWPML 표준** — KS X 6101 (한국 개방형 문서 표준)
+- **python-hwpx** — HWPX 파일 구조 핸들링 라이브러리
+- **python-pptx** — PPT 추출 표준 라이브러리
+- **hwpilot & hwpxskill** — 외부 HWPX 편집 도구
+- **Antigravity** — 이 시스템을 설계하고 반복 개선한 AI 코딩 에이전트
 
 ---
 
 <div align="center">
 
 Made with 🌾 for the Korean public sector
+
+**[⬆ 맨 위로](#-hwpx-proposal-automation)**
 
 </div>

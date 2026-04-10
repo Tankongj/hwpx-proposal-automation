@@ -170,6 +170,77 @@ def check_paragraph_count(data, **kwargs):
 
 
 # ============================================================
+# Advanced Structural Checks (new in v2)
+# ============================================================
+
+
+def check_treat_as_char(data, **kwargs):
+    """Check if all tables have pos.treatAsChar=0 for page-breaking.
+
+    See docs/table-pagebreak.md — 3 conditions required.
+    """
+    section0 = data['sections'].get('Contents/section0.xml')
+    if section0 is None:
+        return True, "section0 not found — skipped"
+
+    import re
+    xml_bytes = data['files'].get('Contents/section0.xml', b'')
+    xml_str = xml_bytes.decode('utf-8', errors='replace') if isinstance(xml_bytes, bytes) else xml_bytes
+    count_1 = len(re.findall(r'treatAsChar="1"', xml_str))
+    count_0 = len(re.findall(r'treatAsChar="0"', xml_str))
+
+    if count_1 == 0:
+        return True, f"treatAsChar=0: {count_0}, treatAsChar=1: 0 ✅"
+    return False, f"treatAsChar=0: {count_0}, treatAsChar=1: {count_1} ⚠️ (run fix_namespaces.py --fix-tables)"
+
+
+def check_namespace_pollution(data, **kwargs):
+    """Check for lxml namespace prefix pollution (ns0:, ns1:).
+
+    See docs/knowhow/namespace-corruption.md
+    """
+    import re
+    for name in data['filelist']:
+        if not name.endswith('.xml'):
+            continue
+        xml_bytes = data['files'].get(name, b'')
+        xml_str = xml_bytes.decode('utf-8', errors='replace') if isinstance(xml_bytes, bytes) else xml_bytes
+        ns_matches = re.findall(r'</?ns\d+:', xml_str)
+        if ns_matches:
+            return False, f"{name}: found {len(ns_matches)} ns prefixes ⚠️ (run fix_namespaces.py)"
+    return True, "No namespace pollution found ✅"
+
+
+def check_lineseg_anomaly(data, **kwargs):
+    """Check for abnormally large linesegarray vertsize values."""
+    import re
+    section0_bytes = data['files'].get('Contents/section0.xml', b'')
+    xml_str = section0_bytes.decode('utf-8', errors='replace') if isinstance(section0_bytes, bytes) else section0_bytes
+    large = re.findall(r'vertsize="(\d{5,})"', xml_str)
+    if large:
+        return False, f"Found {len(large)} large vertsize values (≥10000) — may cause layout issues"
+    return True, "No linesegarray anomalies found ✅"
+
+
+def check_bullet_duplication(data, **kwargs):
+    """Check for double bullet symbols (e.g., '□ □' or '○ ○').
+
+    See docs/knowhow/bullet-dedup.md
+    """
+    section0 = data['sections'].get('Contents/section0.xml')
+    if section0 is None:
+        return True, "section0 not found — skipped"
+    full_text = get_all_text(section0)
+    dups = 0
+    for pattern in ['□ □', '○ ○', '❍ ❍', '― ―', '- - ']:
+        count = full_text.count(pattern)
+        dups += count
+    if dups > 0:
+        return False, f"Found {dups} probable double-bullet occurrences ⚠️"
+    return True, "No bullet duplication found ✅"
+
+
+# ============================================================
 # Quantitative Proposal Checks (정량제안서)
 # ============================================================
 
@@ -262,6 +333,10 @@ def run_verification(hwpx_path, doc_type='auto', company_keywords=None):
         CheckItem('File Structure', 'common', check_file_opens),
         CheckItem('content.hpf Integrity', 'common', check_hpf_integrity),
         CheckItem('Date Fields', 'common', check_date_filled),
+        CheckItem('Namespace Pollution', 'advanced', check_namespace_pollution),
+        CheckItem('Table treatAsChar', 'advanced', check_treat_as_char),
+        CheckItem('Lineseg Anomaly', 'advanced', check_lineseg_anomaly),
+        CheckItem('Bullet Duplication', 'advanced', check_bullet_duplication),
     ]
 
     if doc_type == 'qualitative':

@@ -2,36 +2,33 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 *.egg-info/
 dist/
-build/
 *.egg
-
-# Virtual environments
 venv/
 .venv/
-env/
 
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
 
 # OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# HWPX working files
-*.hwpx.tmp
-*.hwpx.bak
+# Project-specific outputs (not for public repo)
+02_산출물/
+input/
+rfp_text.txt
+parse.py
 
-# Output (user-generated, not tracked)
-output/
-results/
+# Generated artifacts (user-specific)
+*.hwpx
+!templates/*.hwpx
 
-# Sensitive data
-*.env
-.env.local
+# Large binary files
+*.pdf
+*.pptx
+*.ppt
